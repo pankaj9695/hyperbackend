@@ -32,6 +32,7 @@ app.use(bodyParser.json());
 
 // Endpoint for saving wallet address
 app.post('/saveWalletAddress', async (req, res) => {
+  console.log(req.body);
   const { userId, walletAddress, coinRewarded, numCoins } = req.body;
 
   try {
