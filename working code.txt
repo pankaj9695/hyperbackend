@@ -1,0 +1,73 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+
+// Set up the MongoDB connection string
+mongoose.connect('mongodb+srv://pkrhtdm:987654321.0@hypermovegame.loejrx2.mongodb.net/HypermoveGame');
+
+// Create a schema for the WalletAddresses collection
+const walletAddressSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    unique: true
+  },
+  walletAddress: {
+    type: String,
+    unique: true
+  },
+  coinRewarded: Boolean,
+  numCoins: Number
+});
+
+// Create a model for the WalletAddresses collection
+const WalletAddress = mongoose.model('WalletAddress', walletAddressSchema, 'WalletAddresses');
+
+// Set up the API endpoint
+const app = express();
+app.use(bodyParser.json());
+
+app.post('/saveWalletAddress', async (req, res) => {
+  const { userId, walletAddress, coinRewarded, numCoins } = req.body;
+
+  try {
+    // Check if the userId is already in the database
+    const existingUser = await WalletAddress.findOne({ userId });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    // Check if the wallet address is already in the database
+    const existingWallet = await WalletAddress.findOne({ walletAddress });
+    if (existingWallet) {
+      return res.status(400).json({ error: 'Wallet address already exists' });
+    }
+
+    // Check if the user has already been rewarded
+    if (!coinRewarded) {
+      return res.status(400).json({ error: 'User has already been rewarded' });
+    }
+
+    // Create a new wallet address document
+    const newWalletAddress = new WalletAddress({
+      userId,
+      walletAddress,
+      coinRewarded,
+      numCoins
+    });
+
+    // Save the new wallet address document to the database
+    await newWalletAddress.save();
+
+    // Return a success message
+    return res.status(200).json({ message: 'Wallet address saved successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
+});
