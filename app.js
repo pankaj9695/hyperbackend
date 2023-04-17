@@ -106,18 +106,21 @@ app.post('/trackGameStats', async (req, res) => {
       // Reward the player with 10 coins and update the lastRewardTime variable
       gameStats.lastRewardTime = new Date();
       gameStats.numCoins += 10;
+      // Set the sixtyMinitComplete flag to true
+      gameStats.sixtyMinitComplete = true;
     }
 
     // Save the updated game stats document to the database
     await gameStats.save();
 
-    // Return a success message
-    return res.status(200).json({ message: 'Game stats updated successfully' });
+    // Return a success message and the updated game stats
+    return res.status(200).json({ message: 'Game stats updated successfully', sixtyMinitComplete: gameStats.sixtyMinitComplete });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
     
     // Start the server
