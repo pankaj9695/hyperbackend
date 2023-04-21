@@ -7,7 +7,10 @@ mongoose.connect('mongodb+srv://pkrhtdm:987654321.0@hypermovegame.loejrx2.mongod
 
 // Create a schema for the GameStats collection
 const gameStatsSchema = new mongoose.Schema({
-  
+  userId: {
+    type: String,
+    unique: true
+  },
   walletAddress: {
     type: String,
     unique: true
@@ -74,24 +77,24 @@ app.use(bodyParser.json());
 
 app.post('/saveWalletAddress', async (req, res) => {
   console.log(req.body);
-  const { walletAddress } = req.body;
+  const { userId, walletAddress } = req.body;
 
   try {
     // Check if the userId is already in the database
-    /* const existingUser = await GameStats.findOne({ userId });
+    const existingUser = await GameStats.findOne({ userId });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
-    } */
+    }
 
     // Check if the wallet address is already in the database
     const existingWallet = await GameStats.findOne({ walletAddress });
     if (existingWallet) {
-      return res.status(400).json({ message: 'Wallet address already exists' });
+      return res.status(400).json({ error: 'Wallet address already exists' });
     }
 
     // Create a new game stats document for the user
     const newGameStats = new GameStats({
-      //userId,
+      userId,
       walletAddress,
       coinRewarded: false,
       numCoins: 0,
@@ -128,15 +131,15 @@ app.post('/saveWalletAddress', async (req, res) => {
 
 // Endpoint for tracking game stats
 app.post('/trackGameStats', async (req, res) => {
-  const { walletAddress, playMinit, killCount } = req.body;
+  const { userId, playMinit, killCount } = req.body;
 
   try {
     // Find the existing game stats document for the user
-    const gameStats = await GameStats.findOne({ walletAddress });
+    const gameStats = await GameStats.findOne({ userId });
 
     // If the user has no existing game stats document, return an error response
     if (!gameStats) {
-      return res.status(404).json({ error: 'Wallet not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // Increment the player's win count
