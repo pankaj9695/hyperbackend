@@ -148,7 +148,7 @@ app.post('/trackGameStats', async (req, res) => {
 
 
 app.post('/trackEnemiesKilled', async (req, res) => {
-  const { userId, walletAddress, killCount, headshotCount } = req.body;
+  const { userId, walletAddress, killCount, headShotCount } = req.body;
 
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
@@ -164,9 +164,14 @@ app.post('/trackEnemiesKilled', async (req, res) => {
       return res.status(404).json({ message: 'Wallet not found' });
     }
 
-    // If the player's kill count is less than 100 or headshot count is less than 25, send a 403 error response
-    if (killCount < 100 || headshotCount < 25) {
-      return res.status(403).json({ message: 'Less than required kills or headshots' });
+    // If the player's kill count is less than 100, send a 403 error response
+    if (killCount < 100) {
+      return res.status(403).json({ message: 'Less than 100 enemies killed' });
+    }
+
+    // If the player's headshot count is less than 25, send a 403 error response
+    if (headShotCount < 25) {
+      return res.status(403).json({ message: 'Less than 25 headshots' });
     }
 
     // Check if the player has already been rewarded for today
@@ -182,7 +187,7 @@ app.post('/trackEnemiesKilled', async (req, res) => {
     await gameStats.save();
 
     // Send a success response
-    return res.status(200).json({ message: '25 headshots and rewarded with 5 coins', numCoins: gameStats.numCoins });
+    return res.status(200).json({ message: 'Rewarded with 5 coins', numCoins: gameStats.numCoins });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Internal server error' });
