@@ -32,48 +32,6 @@ const app = express();
 app.use(bodyParser.json());
 
 // Endpoint for saving wallet address
-/* app.post('/saveWalletAddress', async (req, res) => {
-  console.log(req.body);
-  const { userId, walletAddress, coinRewarded, numCoins } = req.body;
-
-  try {
-    // Check if the userId is already in the database
-    const existingUser = await GameStats.findOne({ userId });
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
-    }
-
-    // Check if the wallet address is already in the database
-    const existingWallet = await GameStats.findOne({ walletAddress });
-    if (existingWallet) {
-      return res.status(400).json({ error: 'Wallet address already exists' });
-    }
-
-    // Create a new game stats document for the user
-    const newGameStats = new GameStats({
-      userId,
-      walletAddress,
-      coinRewarded,
-      numCoins,
-      killCount: 0,
-      winCount: 0,
-      matchesCompleted: false,
-      playMinit: 0,
-      lastRewardTime: null
-    });
-
-    // Save the new game stats document to the database
-    await newGameStats.save();
-
-    // Return a success message
-    return res.status(200).json({ message: 'Wallet address saved successfully' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-}); */
-
-// Endpoint for saving wallet address
 
 app.post('/saveWalletAddress', async (req, res) => {
   console.log(req.body);
@@ -83,13 +41,13 @@ app.post('/saveWalletAddress', async (req, res) => {
     // Check if the userId is already in the database
     const existingUser = await GameStats.findOne({ userId });
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+      return res.status(400).json({ message: 'User already exists' });
     }
 
     // Check if the wallet address is already in the database
     const existingWallet = await GameStats.findOne({ walletAddress });
     if (existingWallet) {
-      return res.status(400).json({ error: 'Wallet address already exists' });
+      return res.status(400).json({ message: 'Wallet address already exists' });
     }
 
     // Create a new game stats document for the user
@@ -117,29 +75,27 @@ app.post('/saveWalletAddress', async (req, res) => {
     return res.status(200).json({ message: 'Wallet address saved successfully', numCoins: newGameStats.numCoins, coinRewarded: newGameStats.coinRewarded });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 
-
-
-
-
-
-
-
 // Endpoint for tracking game stats
 app.post('/trackGameStats', async (req, res) => {
-  const { userId, playMinit, killCount } = req.body;
+  const { userId, walletAddress, playMinit, killCount } = req.body;
+
+   // Validate that userId and walletAddress are both provided
+   if (!userId || !walletAddress) {
+    return res.status(400).json({ message: 'userId or walletAddress missing' });
+  }
 
   try {
     // Find the existing game stats document for the user
-    const gameStats = await GameStats.findOne({ userId });
+    const gameStats = await GameStats.findOne({ walletAddress });
 
     // If the user has no existing game stats document, return an error response
     if (!gameStats) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ message: 'Wallet not found' });
     }
 
     // Increment the player's win count
@@ -185,9 +141,54 @@ app.post('/trackGameStats', async (req, res) => {
     return res.status(200).json({ message: 'Game stats updated successfully', sixtyMinitComplete: gameStats.sixtyMinitComplete, killedHundred: gameStats.killedHundred });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+
+app.post('/trackEnemiesKilled', async (req, res) => {
+  const { userId, walletAddress, killCount, headshotCount } = req.body;
+
+  // Validate that userId and walletAddress are both provided
+  if (!userId || !walletAddress) {
+    return res.status(400).json({ message: 'userId or walletAddress missing' });
+  }
+
+  try {
+    // Find the existing game stats document for the user
+    const gameStats = await GameStats.findOne({ walletAddress });
+
+    // If the user has no existing game stats document, return an error response
+    if (!gameStats) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+
+    // If the player's kill count is less than 100 or headshot count is less than 25, send a 403 error response
+    if (killCount < 100 || headshotCount < 25) {
+      return res.status(403).json({ message: 'Less than required kills or headshots' });
+    }
+
+    // Check if the player has already been rewarded for today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (gameStats.lastRewardTime && gameStats.lastRewardTime >= today) {
+      return res.status(200).json({ message: 'Already rewarded today' });
+    }
+
+    // Reward the player with 5 coins and update the lastRewardTime variable
+    gameStats.lastRewardTime = new Date();
+    gameStats.numCoins += 5;
+    await gameStats.save();
+
+    // Send a success response
+    return res.status(200).json({ message: '25 headshots and rewarded with 5 coins', numCoins: gameStats.numCoins });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 
 
