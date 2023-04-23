@@ -138,7 +138,7 @@ app.post('/trackGameStats', async (req, res) => {
     await gameStats.save();
 
     // Return a success message and the updated game stats
-    return res.status(200).json({ message: 'Game stats updated successfully', sixtyMinitComplete: gameStats.sixtyMinitComplete, killedHundred: gameStats.killedHundred });
+    return res.status(200).json({ message: 'Game stats updated successfully', sixtyMinitComplete: gameStats.sixtyMinitComplete, killedHundred: gameStats.killedHundred, numCoins: gameStats.numCoins });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Internal server error' });
