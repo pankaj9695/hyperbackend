@@ -104,6 +104,7 @@ app.post('/trackGameStats', async (req, res) => {
     // Update the match count for the player
     gameStats.matchCount += 1;
     gameStats.playMinit += playMinit;
+    await gameStats.save();
 
     // If the player has completed 5 matches, reward them with 200 numCoins and set fiveMatchesCompleted to true
     if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
@@ -118,7 +119,7 @@ app.post('/trackGameStats', async (req, res) => {
     today.setHours(0, 0, 0, 0);
 
     // If the player has played for 60 minutes since their last reward, reward them with 6 coins, update the lastRewardTime variable, and set sixtyMinitComplete to true
-    if (playMinit >= 60) {
+    if (gameStats.playMinit >= 60) {
 
       // Check if the player has already been rewarded for today      
       if (gameStats.lastRewardTime && gameStats.lastRewardTime >= today) {
@@ -130,7 +131,7 @@ app.post('/trackGameStats', async (req, res) => {
       gameStats.sixtyMinitComplete = true;
       await gameStats.save();
 
-      return res.status(200).json({ message: 'Played for 60 minutes and rewarded with 6 coins', numCoins: 6, sixtyMinitComplete: true, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
+      return res.status(200).json({ message: 'Played for 60 minutes and rewarded with 6 coins', numCoins: 6, sixtyMinitComplete: true, });
     }
 
     await gameStats.save();
