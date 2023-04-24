@@ -103,6 +103,7 @@ app.post('/trackGameStats', async (req, res) => {
 
     // Update the match count for the player
     gameStats.matchCount += 1;
+    gameStats.playMinit += playMinit;
 
     // If the player has completed 5 matches, reward them with 200 numCoins and set fiveMatchesCompleted to true
     if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
