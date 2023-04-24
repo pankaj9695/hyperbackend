@@ -87,7 +87,7 @@ app.post('/saveWalletAddress', async (req, res) => {
 
 // Endpoint for tracking game stats
 app.post('/trackGameStats', async (req, res) => {
-  const { userId, walletAddress, matchCount, timePlayed } = req.body;
+  const { userId, walletAddress, playMinit } = req.body;
 
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
@@ -123,7 +123,7 @@ app.post('/trackGameStats', async (req, res) => {
     }
 
     // If the player has played for 60 minutes since their last reward, reward them with 6 coins and set sixtyMinitComplete to true
-    if (timePlayed >= 60 && !gameStats.sixtyMinitComplete) {
+    if (playMinit >= 60 && !gameStats.sixtyMinitComplete) {
       gameStats.sixtyMinitComplete = true;
       gameStats.numCoins += 6;
       await gameStats.save();
@@ -227,9 +227,9 @@ app.post('/rewardWinningPlayers', async (req, res) => {
 
 
     
-    // Start the server
+// Start the server
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`Server started on port ${PORT}`);
-    });
+});
     
