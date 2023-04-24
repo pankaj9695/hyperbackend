@@ -130,6 +130,7 @@ app.post('/trackGameStats', async (req, res) => {
       return res.status(200).json({ message: 'Played for 60 minutes and rewarded with 6 coins', numCoins: gameStats.numCoins, sixtyMinitComplete: true, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
     }
 
+    await gameStats.save();
     // If neither condition is met, send a 403 error response
     return res.status(403).json({ message: 'Complete at least 5 matches or play for at least 60 minutes to receive rewards.' });
 
