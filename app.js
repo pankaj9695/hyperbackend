@@ -63,7 +63,8 @@ app.post('/saveWalletAddress', async (req, res) => {
       matchesCompleted: false,
       playMinit: 0,
       lastRewardTime: null,
-      killCount: 0,
+      killCount: 0,      
+      headShotCount: 0,
     });
 
     // Save the new game stats document to the database
@@ -167,13 +168,11 @@ app.post('/trackEnemiesKilled', async (req, res) => {
     }
 
     // If the player's kill count is less than 100, send a 403 error response
-    if (killCount < 100) {
-      return res.status(403).json({ message: 'Less than 100 enemies killed' });
-    }
-
-    // If the player's headshot count is less than 25, send a 403 error response
-    if (headShotCount < 25) {
-      return res.status(403).json({ message: 'Less than 25 headshots' });
+    if (killCount <= 100 && headShotCount <= 25) {
+      gameStats.headShotCount += headShotCount;
+      gameStats.killCount += killCount;      
+      await gameStats.save();
+      return res.status(403).json({ message: 'Less than 100 enemies killed or Less than 25 headshots' });
     }
 
     // Check if the player has already been rewarded for today
@@ -185,11 +184,13 @@ app.post('/trackEnemiesKilled', async (req, res) => {
 
     // Reward the player with 5 coins and update the lastRewardTime variable
     gameStats.lastRewardTime = new Date();
+    gameStats.headShotCount += headShotCount;
+    gameStats.killCount += killCount;      
     gameStats.numCoins += 5;
     await gameStats.save();
 
     // Send a success response
-    return res.status(200).json({ message: 'Rewarded with 5 coins', numCoins: gameStats.numCoins });
+    return res.status(200).json({ message: 'Rewarded with 5 coins', numCoins: 5 });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -219,7 +220,7 @@ app.post('/rewardWinningPlayers', async (req, res) => {
       gameStats.numCoins += 5;
       await gameStats.save();
       // Send a success response
-      return res.status(200).json({ message: 'Rewarded with 5 coins for winning', numCoins: gameStats.numCoins });
+      return res.status(200).json({ message: 'Rewarded with 5 coins for winning', numCoins: 5 });
     
 
     // If the player is not on the winning team, send a 403 error response
