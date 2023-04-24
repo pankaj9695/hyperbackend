@@ -83,8 +83,6 @@ app.post('/saveWalletAddress', async (req, res) => {
 });
 
 
-
-
 // Endpoint for tracking game stats
 app.post('/trackGameStats', async (req, res) => {
   const { userId, walletAddress, playMinit } = req.body;
@@ -122,23 +120,26 @@ app.post('/trackGameStats', async (req, res) => {
       return res.status(200).json({ message: 'Already rewarded today', numCoins: gameStats.numCoins, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
     }
 
-    // If the player has played for 60 minutes since their last reward, reward them with 6 coins and set sixtyMinitComplete to true
-    if (playMinit >= 60 && !gameStats.sixtyMinitComplete) {
-      gameStats.sixtyMinitComplete = true;
+    // If the player has played for 60 minutes since their last reward, reward them with 6 coins, update the lastRewardTime variable, and set sixtyMinitComplete to true
+    if (playMinit >= 60) {
+      gameStats.lastRewardTime = new Date();
       gameStats.numCoins += 6;
+      gameStats.sixtyMinitComplete = true;
       await gameStats.save();
 
       return res.status(200).json({ message: 'Played for 60 minutes and rewarded with 6 coins', numCoins: gameStats.numCoins, sixtyMinitComplete: true, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
     }
 
-    // Send a success response with the updated numCoins
-    await gameStats.save();
-    return res.status(200).json({ message: 'Game stats updated', numCoins: gameStats.numCoins, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
+    // If neither condition is met, send a 403 error response
+    return res.status(403).json({ message: 'Complete at least 5 matches or play for at least 60 minutes to receive rewards.' });
+
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
 
 
 
