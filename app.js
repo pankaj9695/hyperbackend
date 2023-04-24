@@ -193,7 +193,7 @@ app.post('/trackEnemiesKilled', async (req, res) => {
 
 // Endpoint for rewarding winning team players
 app.post('/rewardWinningPlayers', async (req, res) => {
-  const { userId, walletAddress, isWinner } = req.body;
+  const { userId, walletAddress } = req.body;
 
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
@@ -210,13 +210,11 @@ app.post('/rewardWinningPlayers', async (req, res) => {
     }
 
     // If the player is on the winning team, reward them with 5 coins
-    if (isWinner) {
       gameStats.numCoins += 5;
       await gameStats.save();
-
       // Send a success response
       return res.status(200).json({ message: 'Rewarded with 5 coins for winning', numCoins: gameStats.numCoins });
-    }
+    
 
     // If the player is not on the winning team, send a 403 error response
     return res.status(403).json({ message: 'Not on the winning team' });
