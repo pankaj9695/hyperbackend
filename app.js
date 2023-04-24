@@ -17,11 +17,15 @@ const gameStatsSchema = new mongoose.Schema({
   },
   coinRewarded: Boolean,
   numCoins: Number,
-  winCount: Number,
+  matchCount: Number,
   matchesCompleted: Boolean,
   playMinit: Number,
   lastRewardTime: Date,
-  killCount : Number,
+  killCount: Number,
+  headShotCount: Number,
+  fiveMatchesCompleted: Boolean,
+  sixtyMinitComplete: Boolean,
+  isWinner: Boolean
 });
 
 // Create a model for the GameStats collection
@@ -32,7 +36,6 @@ const app = express();
 app.use(bodyParser.json());
 
 // Endpoint for saving wallet address
-
 app.post('/saveWalletAddress', async (req, res) => {
   console.log(req.body);
   const { userId, walletAddress } = req.body;
@@ -56,11 +59,11 @@ app.post('/saveWalletAddress', async (req, res) => {
       walletAddress,
       coinRewarded: false,
       numCoins: 0,
-      killCount: 0,
-      winCount: 0,
+      matchCount: 0,
       matchesCompleted: false,
       playMinit: 0,
-      lastRewardTime: null
+      lastRewardTime: null,
+      killCount: 0,
     });
 
     // Save the new game stats document to the database
@@ -80,12 +83,14 @@ app.post('/saveWalletAddress', async (req, res) => {
 });
 
 
+
+
 // Endpoint for tracking game stats
 app.post('/trackGameStats', async (req, res) => {
-  const { userId, walletAddress, playMinit, killCount } = req.body;
+  const { userId, walletAddress, matchCount, timePlayed } = req.body;
 
-   // Validate that userId and walletAddress are both provided
-   if (!userId || !walletAddress) {
+  // Validate that userId and walletAddress are both provided
+  if (!userId || !walletAddress) {
     return res.status(400).json({ message: 'userId or walletAddress missing' });
   }
 
@@ -98,47 +103,37 @@ app.post('/trackGameStats', async (req, res) => {
       return res.status(404).json({ message: 'Wallet not found' });
     }
 
-    // Increment the player's win count
-    gameStats.winCount += 1;
+    // Update the match count for the player
+    gameStats.matchCount += matchCount;
 
-    // Check if the player has completed 5 matches
-    if (gameStats.winCount >= 5 && !gameStats.matchesCompleted) {
-      // Update the matchesCompleted flag and send a success response
-      gameStats.matchesCompleted = true;
+    // If the player has completed 5 matches, reward them with 200 numCoins and set fiveMatchesCompleted to true
+    if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
+      gameStats.fiveMatchesCompleted = true;
+      gameStats.numCoins += 200;
       await gameStats.save();
-      return res.status(200).json({ message: 'Matches completed', matchesCompleted: true });
+
+      return res.status(200).json({ message: 'Five matches completed and rewarded with 200 coins', numCoins: gameStats.numCoins, fiveMatchesCompleted: true });
     }
 
-    // Update the player's playMinit variable
-    gameStats.playMinit += playMinit;
+    // Check if the player has already been rewarded for today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (gameStats.lastRewardTime && gameStats.lastRewardTime >= today) {
+      return res.status(200).json({ message: 'Already rewarded today', numCoins: gameStats.numCoins, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
+    }
 
-    // Save the player's kill count
-    gameStats.killCount = killCount;
-
-    // Check if the player has played for at least 60 minutes since their last reward
-    if (gameStats.playMinit >= 60 && (!gameStats.lastRewardTime || new Date() - gameStats.lastRewardTime >= 86400000)) {
-      // Reward the player with 10 coins and update the lastRewardTime variable
-      gameStats.lastRewardTime = new Date();
-      gameStats.numCoins += 10;
-      // Set the sixtyMinitComplete flag to true
+    // If the player has played for 60 minutes since their last reward, reward them with 6 coins and set sixtyMinitComplete to true
+    if (timePlayed >= 60 && !gameStats.sixtyMinitComplete) {
       gameStats.sixtyMinitComplete = true;
-    }
-
-    // Check if the player has killed at least 100 enemies
-    if (killCount < 100) {
+      gameStats.numCoins += 6;
       await gameStats.save();
-      // Return a 403 error response if the player's kill count is less than 100      
-      return res.status(403).json({ message: 'Kill count is less than 100' });
-    } else {
-      // Set the killedHundred flag to true if the player's kill count is 100 or greater
-      gameStats.killedHundred = true;
+
+      return res.status(200).json({ message: 'Played for 60 minutes and rewarded with 6 coins', numCoins: gameStats.numCoins, sixtyMinitComplete: true, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
     }
 
-    // Save the updated game stats document to the database
+    // Send a success response with the updated numCoins
     await gameStats.save();
-
-    // Return a success message and the updated game stats
-    return res.status(200).json({ message: 'Game stats updated successfully', sixtyMinitComplete: gameStats.sixtyMinitComplete, killedHundred: gameStats.killedHundred, numCoins: gameStats.numCoins });
+    return res.status(200).json({ message: 'Game stats updated', numCoins: gameStats.numCoins, fiveMatchesCompleted: gameStats.fiveMatchesCompleted });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -147,6 +142,7 @@ app.post('/trackGameStats', async (req, res) => {
 
 
 
+// Endpoint for tracking Enemies Killing
 app.post('/trackEnemiesKilled', async (req, res) => {
   const { userId, walletAddress, killCount, headShotCount } = req.body;
 
@@ -194,6 +190,41 @@ app.post('/trackEnemiesKilled', async (req, res) => {
   }
 });
 
+
+// Endpoint for rewarding winning team players
+app.post('/rewardWinningPlayers', async (req, res) => {
+  const { userId, walletAddress, isWinner } = req.body;
+
+  // Validate that userId and walletAddress are both provided
+  if (!userId || !walletAddress) {
+    return res.status(400).json({ message: 'userId or walletAddress missing' });
+  }
+
+  try {
+    // Find the existing game stats document for the user
+    const gameStats = await GameStats.findOne({ walletAddress });
+
+    // If the user has no existing game stats document, return an error response
+    if (!gameStats) {
+      return res.status(404).json({ message: 'Wallet not found' });
+    }
+
+    // If the player is on the winning team, reward them with 5 coins
+    if (isWinner) {
+      gameStats.numCoins += 5;
+      await gameStats.save();
+
+      // Send a success response
+      return res.status(200).json({ message: 'Rewarded with 5 coins for winning', numCoins: gameStats.numCoins });
+    }
+
+    // If the player is not on the winning team, send a 403 error response
+    return res.status(403).json({ message: 'Not on the winning team' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 
