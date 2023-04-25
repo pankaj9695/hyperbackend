@@ -13,6 +13,9 @@ function sameDay(d1, d2) {
   if (!d1 || !d2) {
     return false;
   }
+
+  d1=new Date(d1)
+  d2=new Date(d2)
   return (
     d1.getFullYear() === d2.getFullYear() &&
     d1.getMonth() === d2.getMonth() &&
