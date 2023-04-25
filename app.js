@@ -6,7 +6,6 @@ mongoose.connect(
   "mongodb+srv://pkrhtdm:987654321.0@hypermovegame.loejrx2.mongodb.net/HypermoveGame"
 ).then(()=>{console.log("Mongoose connected")});
 function sameDay(d1, d2) {
-  return false
   if(!d1 || !d2){
     return false;
   }
