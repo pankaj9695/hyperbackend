@@ -121,6 +121,7 @@ app.post("/trackFiveMatches", async (req, res) => {
       return res.status(404).json({ message: "Wallet not found" });
     }
     gameStats.matchCount += 1;
+    await gameStats.save()
     if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
       gameStats.fiveMatchesCompleted = true;
       gameStats.numCoins += 200;
@@ -177,7 +178,7 @@ app.post("/trackSixtyMinutes", async (req, res) => {
       gameStats.numCoins += 6;
       gameStats.sixtyMinitComplete = true;
       await gameStats.save();
-      
+
       return res.status(200).json({
         message: "Played for 60 minutes and rewarded with 6 coins",
         numCoins: 6,
