@@ -110,7 +110,7 @@ app.post("/trackGameStats", async (req, res) => {
   const { userId, walletAddress, playMinit:todayPlayMinutes } = req.body;
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
-    return res.status(400).json({ message: "userId or walletAddress missing" });
+    return res.status(403).json({ message: "userId or walletAddress missing" });
   }
 
   try {
@@ -164,7 +164,8 @@ app.post("/trackGameStats", async (req, res) => {
           message:
             "Played for 60 minutes & completed 5 matches.Rewarded with 206 coins",
           numCoins: 206,
-          sixtyMinitComplete: true,
+            fiveMatchesCompleted: true,
+            sixtyMinitComplete: true,
         });
       }
       return res.status(200).json({
