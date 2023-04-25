@@ -226,12 +226,15 @@ app.post("/trackHundredKills", async (req, res) => {
     gameStats.totalKills += killCount;
     // check if new days has started, if yes then reset the fields
     if (!sameDay(new Date(), gameStats.todayDate)) {
-      gameStats.todayDate = new Date();
+    console.log("same day",{killCount});
+    gameStats.todayDate = new Date();
       gameStats.killCount = killCount;
     } else {
-      gameStats.killCount += killCount;
+    console.log("not sameday",{killCount});
+    gameStats.killCount += killCount;
     }
     await gameStats.save();
+    console.log(gameStats.killCount);
     // if user is not eligible for none of rewards,send 403
     if (gameStats.killCount < 100) {
       return res.status(403).json({
@@ -344,6 +347,14 @@ app.post("/rewardWinningPlayers", async (req, res) => {
 });
 app.get("/", async (req, res) => {
   res.send(await GameStats.find({}));
+});
+app.get("/date", async (req, res) => {
+  res.send(await GameStats.updateMany({
+    "todayDate": "2023-04-20T16:34:35.582Z",
+    "lastHeadshotsRewardTime": "2023-04-20T16:32:19.034Z",
+    "lastKillsRewardTime": "2023-04-20T16:34:36.150Z",
+    "last60MinuteReward": "2023-04-20T16:33:40.887Z",
+  }));
 });
 app.delete("/", async (req, res) => {
   res.send(await GameStats.deleteMany({}));
