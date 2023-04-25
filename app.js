@@ -105,8 +105,8 @@ app.post("/saveWalletAddress", async (req, res) => {
 });
 
 // Endpoint for tracking game stats
-app.post("/trackGameStats", async (req, res) => {
-  const { userId, walletAddress, playMinit:todayPlayMinutes } = req.body;
+app.post("/trackFiveMatches", async (req, res) => {
+  const { userId, walletAddress } = req.body;
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
     return res.status(403).json({ message: "userId or walletAddress missing" });
@@ -121,8 +121,43 @@ app.post("/trackGameStats", async (req, res) => {
       return res.status(404).json({ message: "Wallet not found" });
     }
     gameStats.matchCount += 1;
+    if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
+      gameStats.fiveMatchesCompleted = true;
+      gameStats.numCoins += 200;
+      await gameStats.save();
+      return res.status(200).json({
+        message: "Five matches completed and rewarded with 200 coins",
+        numCoins: 200,
+        fiveMatchesCompleted: true,
+      });
+    }
+
+    // If neither condition is met, send a 403 error response
+    return res.status(403).json({
+      message:
+        "Complete at least 5 matches or play for at least 60 minutes to receive rewards.",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+app.post("/trackSixtyMinutes", async (req, res) => {
+  const { userId, walletAddress, playMinit:todayPlayMinutes } = req.body;
+  // Validate that userId and walletAddress are both provided
+  if (!userId || !walletAddress) {
+    return res.status(403).json({ message: "userId or walletAddress missing" });
+  }
+
+  try {
+    // Find the existing game stats document for the user
+    const gameStats = await GameStats.findOne({ walletAddress });
+
+    // If the user has no existing game stats document, return an error response
+    if (!gameStats) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
     gameStats.totalPlayMinutes += todayPlayMinutes
-// if not same day,then reset fields
     if (sameDay(new Date(gameStats.todayDate), new Date())) {
       gameStats.todayPlayMinutes += todayPlayMinutes;
     } else {
@@ -130,54 +165,23 @@ app.post("/trackGameStats", async (req, res) => {
       gameStats.todayDate = new Date();
     }
     await gameStats.save();
-    let numCoinsToBeRewarded = 0;
-    if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
-      gameStats.fiveMatchesCompleted = true;
-      gameStats.numCoins += 200;
-      await gameStats.save();
-      numCoinsToBeRewarded += 200;
-    }
     // If the player has played for 60 minutes today and hasnt been rewarded already,then reward them with 6 coins
     if (gameStats.todayPlayMinutes >= 60) {
       // Check if the player has already been rewarded for today
       if (gameStats.last60MinuteReward && sameDay(gameStats.last60MinuteReward,new Date()) ) {
         // for the case where 60 minute reward has been given but 5 matches completed
-        if (numCoinsToBeRewarded) {
-          return res.status(200).json({
-            message: "Five matches completed and rewarded with 200 coins",
-            numCoins: 200,
-            fiveMatchesCompleted: true,
-          });
-        }
         return res.status(403).json({ message: "Already rewarded today" });
       }
 
       gameStats.last60MinuteReward = new Date();
       gameStats.numCoins += 6;
       gameStats.sixtyMinitComplete = true;
-      numCoinsToBeRewarded += 6;
       await gameStats.save();
-
-      if (numCoinsToBeRewarded === 206) {
-        return res.status(200).json({
-          message:
-            "Played for 60 minutes & completed 5 matches.Rewarded with 206 coins",
-          numCoins: 206,
-            fiveMatchesCompleted: true,
-            sixtyMinitComplete: true,
-        });
-      }
+      
       return res.status(200).json({
         message: "Played for 60 minutes and rewarded with 6 coins",
         numCoins: 6,
         sixtyMinitComplete: true,
-      });
-    }
-    else if (numCoinsToBeRewarded===200) {
-      return res.status(200).json({
-        message: "Five matches completed and rewarded with 200 coins",
-        numCoins: 200,
-        fiveMatchesCompleted: true,
       });
     }
 
