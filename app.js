@@ -49,6 +49,8 @@ const gameStatsSchema = new mongoose.Schema({
   lastHeadshotsRewardTime: Date,
   last60MinuteReward: Date,
   todayDate: { type: Date, default: new Date() },
+  todayDate2: { type: Date, default: new Date() },
+  todayDate3: { type: Date, default: new Date() },
 });
 
 // Create a model for the GameStats collection
@@ -225,10 +227,11 @@ app.post("/trackHundredKills", async (req, res) => {
     }
     gameStats.totalKills += killCount;
     // check if new days has started, if yes then reset the fields
-    if (!sameDay(new Date(), gameStats.todayDate)) {
+    if (!sameDay(new Date(), gameStats.todayDate2)) {
     console.log("same day",{killCount});
-    gameStats.todayDate = new Date();
-      gameStats.killCount = killCount;
+    gameStats.todayDate2 = new Date();
+    gameStats.killCount = killCount;
+
     } else {
     console.log("not sameday",{killCount});
     gameStats.killCount += killCount;
@@ -283,8 +286,8 @@ app.post("/trackTwentyFiveHeadshots", async (req, res) => {
     }
     gameStats.totalHeadshots += headShotCount;
     // check if new days has started, if yes then reset the fields
-    if (!sameDay(new Date(), gameStats.todayDate)) {
-      (gameStats.todayDate = new Date()),
+    if (!sameDay(new Date(), gameStats.todayDate3)) {
+      (gameStats.todayDate3 = new Date()),
         (gameStats.headShotCount = headShotCount);
     } else {
       gameStats.headShotCount += headShotCount;
