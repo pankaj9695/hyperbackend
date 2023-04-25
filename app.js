@@ -204,7 +204,7 @@ app.post("/trackEnemiesKilled", async (req, res) => {
 
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
-    return res.status(400).json({ message: "userId or walletAddress missing" });
+    return res.status(403).json({ message: "userId or walletAddress missing" });
   }
 
   try {
@@ -236,16 +236,22 @@ app.post("/trackEnemiesKilled", async (req, res) => {
     }
 
     numCoinsToBeRewarded=0
+    const temp={
+      killedHundred:false,
+      headShotKilled:false
+    }
     // if total headshots for the day are 25+ and no reward was given today
     if(gameStats.headShotCount >= 25 && !sameDay(gameStats.lastHeadshotsRewardTime , new Date())){
       numCoinsToBeRewarded+=5
       gameStats.lastHeadshotsRewardTime = new Date()
+      temp.headShotKilled =true
     }
     // if total kills for the day are 100+ and no reward was given today
 
     if(gameStats.killCount >= 100 && !sameDay(gameStats.lastKillsRewardTime , new Date())){
       numCoinsToBeRewarded+=10
       gameStats.lastKillsRewardTime = new Date()
+      temp.killedHundred =true
     }
     // if both rewards are rewarded already for the day
     if (numCoinsToBeRewarded ===0) {
@@ -258,7 +264,7 @@ app.post("/trackEnemiesKilled", async (req, res) => {
     // Send a success response
     return res
       .status(200)
-      .json({ message: "Rewarded with "+numCoinsToBeRewarded+" coins", numCoins: numCoinsToBeRewarded });
+      .json({ message: "Rewarded with "+numCoinsToBeRewarded+" coins", numCoins: numCoinsToBeRewarded ,...temp});
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
