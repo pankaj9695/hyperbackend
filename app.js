@@ -354,6 +354,8 @@ app.get("/", async (req, res) => {
 app.get("/date", async (req, res) => {
   res.send(await GameStats.updateMany({
     "todayDate": "2023-04-20T16:34:35.582Z",
+    "todayDate2": "2023-04-20T16:34:35.582Z",
+    "todayDate3": "2023-04-20T16:34:35.582Z",
     "lastHeadshotsRewardTime": "2023-04-20T16:32:19.034Z",
     "lastKillsRewardTime": "2023-04-20T16:34:36.150Z",
     "last60MinuteReward": "2023-04-20T16:33:40.887Z",
