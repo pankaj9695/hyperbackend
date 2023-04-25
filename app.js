@@ -2,11 +2,15 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 // Set up the MongoDB connection string
-mongoose.connect(
-  "mongodb+srv://pkrhtdm:987654321.0@hypermovegame.loejrx2.mongodb.net/HypermoveGame"
-).then(()=>{console.log("Mongoose connected")});
+mongoose
+  .connect(
+    "mongodb+srv://pkrhtdm:987654321.0@hypermovegame.loejrx2.mongodb.net/HypermoveGame"
+  )
+  .then(() => {
+    console.log("Mongoose connected");
+  });
 function sameDay(d1, d2) {
-  if(!d1 || !d2){
+  if (!d1 || !d2) {
     return false;
   }
   return (
@@ -26,27 +30,26 @@ const gameStatsSchema = new mongoose.Schema({
     unique: true,
   },
   coinRewarded: Boolean,
-  numCoins: {type:Number,default:0},
-  matchCount: {type:Number,default:0},
+  numCoins: { type: Number, default: 0 },
+  matchCount: { type: Number, default: 0 },
   matchesCompleted: Boolean,
-  todayPlayMinutes: {type:Number,default:0},
-  totalPlayMinutes: {type:Number,default:0},
-  totalKills: {type:Number,default:0},
-  totalHeadshots: {type:Number,default:0},
-  killCount: {type:Number,default:0},
-  headShotCount: {type:Number,default:0},
+  todayPlayMinutes: { type: Number, default: 0 },
+  totalPlayMinutes: { type: Number, default: 0 },
+  totalKills: { type: Number, default: 0 },
+  totalHeadshots: { type: Number, default: 0 },
+  killCount: { type: Number, default: 0 },
+  headShotCount: { type: Number, default: 0 },
   fiveMatchesCompleted: Boolean,
   sixtyMinitComplete: Boolean,
   isWinner: Boolean,
   lastKillsRewardTime: Date,
   lastHeadshotsRewardTime: Date,
-  last60MinuteReward:Date,
+  last60MinuteReward: Date,
   todayDate: { type: Date, default: new Date() },
 });
 
 // Create a model for the GameStats collection
 const GameStats = mongoose.model("GameStats", gameStatsSchema, "PlayersData");
-// GameStats.deleteMany({}).then(console.log)
 // Set up the API endpoints
 const app = express();
 app.use(bodyParser.json());
@@ -121,7 +124,7 @@ app.post("/trackFiveMatches", async (req, res) => {
       return res.status(404).json({ message: "Wallet not found" });
     }
     gameStats.matchCount += 1;
-    await gameStats.save()
+    await gameStats.save();
     if (gameStats.matchCount >= 5 && !gameStats.fiveMatchesCompleted) {
       gameStats.fiveMatchesCompleted = true;
       gameStats.numCoins += 200;
@@ -144,7 +147,7 @@ app.post("/trackFiveMatches", async (req, res) => {
   }
 });
 app.post("/trackSixtyMinutes", async (req, res) => {
-  const { userId, walletAddress, playMinit:todayPlayMinutes } = req.body;
+  const { userId, walletAddress, playMinit: todayPlayMinutes } = req.body;
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
     return res.status(403).json({ message: "userId or walletAddress missing" });
@@ -158,7 +161,7 @@ app.post("/trackSixtyMinutes", async (req, res) => {
     if (!gameStats) {
       return res.status(404).json({ message: "Wallet not found" });
     }
-    gameStats.totalPlayMinutes += todayPlayMinutes
+    gameStats.totalPlayMinutes += todayPlayMinutes;
     if (sameDay(new Date(gameStats.todayDate), new Date())) {
       gameStats.todayPlayMinutes += todayPlayMinutes;
     } else {
@@ -169,7 +172,10 @@ app.post("/trackSixtyMinutes", async (req, res) => {
     // If the player has played for 60 minutes today and hasnt been rewarded already,then reward them with 6 coins
     if (gameStats.todayPlayMinutes >= 60) {
       // Check if the player has already been rewarded for today
-      if (gameStats.last60MinuteReward && sameDay(gameStats.last60MinuteReward,new Date()) ) {
+      if (
+        gameStats.last60MinuteReward &&
+        sameDay(gameStats.last60MinuteReward, new Date())
+      ) {
         // for the case where 60 minute reward has been given but 5 matches completed
         return res.status(403).json({ message: "Already rewarded today" });
       }
@@ -199,8 +205,62 @@ app.post("/trackSixtyMinutes", async (req, res) => {
 });
 
 // Endpoint for tracking Enemies Killing
-app.post("/trackEnemiesKilled", async (req, res) => {
-  const { userId, walletAddress, killCount, headShotCount } = req.body;
+app.post("/trackHundredKills", async (req, res) => {
+  const { userId, walletAddress, killCount } = req.body;
+
+  if (!userId || !walletAddress) {
+    return res.status(403).json({ message: "userId or walletAddress missing" });
+  }
+
+  try {
+    // Find the existing game stats document for the user
+    const gameStats = await GameStats.findOne({ walletAddress });
+
+    // If the user has no existing game stats document, return an error response
+    if (!gameStats) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
+    gameStats.totalKills += killCount;
+    // check if new days has started, if yes then reset the fields
+    if (!sameDay(new Date(), gameStats.todayDate)) {
+      gameStats.todayDate = new Date();
+      gameStats.killCount = killCount;
+    } else {
+      gameStats.killCount += killCount;
+    }
+    await gameStats.save();
+    // if user is not eligible for none of rewards,send 403
+    if (gameStats.killCount < 100) {
+      return res.status(403).json({
+        message: "Less than 100 enemies killed!",
+      });
+    }
+    if (sameDay(gameStats.lastKillsRewardTime, new Date())) {
+      return res.status(403).json({
+        message: "Already rewarded for today!",
+      });
+    }
+    // if total kills for the day are 100+ and no reward was given today
+    if (
+      gameStats.killCount >= 100 &&
+      !sameDay(gameStats.lastKillsRewardTime, new Date())
+    ) {
+      gameStats.lastKillsRewardTime = new Date();
+      await gameStats.save();
+      return res.status(200).json({
+        message: "Rewarded with 10 coins",
+        numCoins: 10,
+        killedHundred: true,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+// Endpoint for tracking Enemies Killing
+app.post("/trackTwentyFiveHeadshots", async (req, res) => {
+  const { userId, walletAddress, headShotCount } = req.body;
 
   // Validate that userId and walletAddress are both provided
   if (!userId || !walletAddress) {
@@ -215,56 +275,34 @@ app.post("/trackEnemiesKilled", async (req, res) => {
     if (!gameStats) {
       return res.status(404).json({ message: "Wallet not found" });
     }
-    gameStats.totalHeadshots += headShotCount
-    gameStats.totalKills += killCount
+    gameStats.totalHeadshots += headShotCount;
     // check if new days has started, if yes then reset the fields
-    if(!sameDay(new Date(),gameStats.todayDate)){
-        gameStats.todayDate = new Date(),
-        gameStats.headShotCount = headShotCount
-        gameStats.killCount = killCount
-    }
-    else{
+    if (!sameDay(new Date(), gameStats.todayDate)) {
+      (gameStats.todayDate = new Date()),
+        (gameStats.headShotCount = headShotCount);
+    } else {
       gameStats.headShotCount += headShotCount;
-      gameStats.killCount += killCount;
     }
-    await gameStats.save()
-    // if user is not eligible for none of rewards,send 403 
-    if (gameStats.killCount <= 100 && gameStats.headShotCount <= 25) {
+    await gameStats.save();
+    // if user is not eligible for none of rewards,send 403
+    if (gameStats.headShotCount < 25) {
       return res.status(403).json({
-        message: "Less than 100 enemies killed or Less than 25 headshots",
+        message: "Less than 25 headshots!",
       });
     }
-
-    numCoinsToBeRewarded=0
-    const temp={
-      killedHundred:false,
-      headShotKilled:false
-    }
-    // if total headshots for the day are 25+ and no reward was given today
-    if(gameStats.headShotCount >= 25 && !sameDay(gameStats.lastHeadshotsRewardTime , new Date())){
-      numCoinsToBeRewarded+=5
-      gameStats.lastHeadshotsRewardTime = new Date()
-      temp.headShotKilled =true
+    if (sameDay(gameStats.lastHeadshotsRewardTime, new Date())) {
+      return res.status(403).json({
+        message: "Already rewarded for today!",
+      });
     }
     // if total kills for the day are 100+ and no reward was given today
-
-    if(gameStats.killCount >= 100 && !sameDay(gameStats.lastKillsRewardTime , new Date())){
-      numCoinsToBeRewarded+=10
-      gameStats.lastKillsRewardTime = new Date()
-      temp.killedHundred =true
-    }
-    // if both rewards are rewarded already for the day
-    if (numCoinsToBeRewarded ===0) {
-      return res.status(200).json({ message: "Already rewarded today" });
-    }
-
-    gameStats.numCoins += numCoinsToBeRewarded;
+    gameStats.lastHeadshotsRewardTime = new Date();
     await gameStats.save();
-
-    // Send a success response
-    return res
-      .status(200)
-      .json({ message: "Rewarded with "+numCoinsToBeRewarded+" coins", numCoins: numCoinsToBeRewarded ,...temp});
+    return res.status(200).json({
+      message: "Rewarded with 5 coins",
+      numCoins: 5,
+      headShotKilled: true,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -296,15 +334,17 @@ app.post("/rewardWinningPlayers", async (req, res) => {
     return res
       .status(200)
       .json({ message: "Rewarded with 5 coins for winning", numCoins: 5 });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-app.get("/",async(req,res)=>{
-  res.send(await GameStats.find({}))
-})
+app.get("/", async (req, res) => {
+  res.send(await GameStats.find({}));
+});
+app.delete("/", async (req, res) => {
+  res.send(await GameStats.deleteMany({}));
+});
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
