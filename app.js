@@ -80,7 +80,7 @@ app.post("/saveWalletAddress", async (req, res) => {
       todayPlayMinutes: 0,
       killCount: 0,
       headShotCount: 0,
-
+      totalHeadshots: 0,
       todayDate: new Date(),
     });
 
