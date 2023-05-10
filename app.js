@@ -67,6 +67,7 @@ app.post("/saveWalletAddress", async (req, res) => {
   try {
     // Check if the userId is already in the database
     const existingUser = await GameStats.findOne({ userId });
+    const existingWallet = await GameStats.findOne({ walletAddress });
     if (existingUser || existingWallet) {
       res.status(200).json({ message: "User/Wallet already exists", walletAddress:walletAddress });
     }
