@@ -113,7 +113,7 @@ app.post("/saveWalletAddress", async (req, res) => {
   }
 });
 
-// Endpoint for tracking game stats
+// Endpoint for tracking Five Matches
 app.post("/trackFiveMatches", async (req, res) => {
   const { userId, walletAddress } = req.body;
   // Validate that userId and walletAddress are both provided
@@ -152,6 +152,9 @@ app.post("/trackFiveMatches", async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
+// Endpoint for tracking Sixty Minutes GamePlay
 app.post("/trackSixtyMinutes", async (req, res) => {
   const { userId, walletAddress, playMinit: todayPlayMinutes } = req.body;
   // Validate that userId and walletAddress are both provided
