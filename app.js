@@ -14,8 +14,8 @@ function sameDay(d1, d2) {
     return false;
   }
 
-  d1=new Date(d1)
-  d2=new Date(d2)
+  d1 = new Date(d1);
+  d2 = new Date(d2);
   return (
     d1.getFullYear() === d2.getFullYear() &&
     d1.getMonth() === d2.getMonth() &&
@@ -61,55 +61,124 @@ app.use(bodyParser.json());
 
 // Endpoint for saving wallet address
 app.post("/saveWalletAddress", async (req, res) => {
-  console.log(req.body);
-  const { userId, walletAddress } = req.body;
+  // console.log(req.body);
+  // const { userId, walletAddress } = req.body;
 
+  // try {
+  //   // Check if the userId is already in the database
+  //   const existingUser = await GameStats.findOne({ userId });
+  //   const existingWallet = await GameStats.findOne({ walletAddress });
+  //   if (existingUser || existingWallet) {
+  //     res.status(200).json({
+  //       message: "User/Wallet already exists",
+  //       walletAddress: walletAddress,
+  //     });
+  //   }
+
+  //   // Check if the wallet address is already in the database
+  //   /* const existingWallet = await GameStats.findOne({ walletAddress });
+  //   if (existingWallet) {
+  //     return res.status(403).json({ message: "Wallet address already exists" });
+  //   } */
+
+  //   // Create a new game stats document for the user
+  //   const newGameStats = new GameStats({
+  //     userId,
+  //     walletAddress,
+  //     coinRewarded: false,
+  //     numCoins: 0,
+  //     matchCount: 0,
+  //     matchesCompleted: false,
+  //     todayPlayMinutes: 0,
+  //     killCount: 0,
+  //     headShotCount: 0,
+  //     totalHeadshots: 0,
+  //     todayDate: new Date(),
+  //   });
+
+  //   // Save the new game stats document to the database
+  //   await newGameStats.save();
+
+  //   // Reward the player with 150 coins and set the coinRewarded flag to true on the server
+  //   newGameStats.numCoins += 150;
+  //   newGameStats.coinRewarded = true;
+  //   await newGameStats.save();
+
+  //   // Return a success message and the updated game stats
+  //   return res.status(200).json({
+  //     message: "Wallet address saved successfully",
+  //     numCoins: newGameStats.numCoins,
+  //     coinRewarded: newGameStats.coinRewarded,
+  //   });
+  // } catch (error) {
+  //   console.error(error);
+  //   return res.status(500).json({ message: "Internal server error" });
+  // }
   try {
-    // Check if the userId is already in the database
-    const existingUser = await GameStats.findOne({ userId });
-    const existingWallet = await GameStats.findOne({ walletAddress });
-    if (existingUser || existingWallet) {
-      res.status(200).json({ message: "User/Wallet already exists", walletAddress:walletAddress });
+    const { userId, walletAddress } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Please provide  User ID",
+      });
     }
 
-    // Check if the wallet address is already in the database
-    /* const existingWallet = await GameStats.findOne({ walletAddress });
-    if (existingWallet) {
-      return res.status(403).json({ message: "Wallet address already exists" });
-    } */
+    // User Exist or Not
+    const existingUser = await GameStats.findOne({ userId });
 
-    // Create a new game stats document for the user
-    const newGameStats = new GameStats({
-      userId,
-      walletAddress,
-      coinRewarded: false,
-      numCoins: 0,
-      matchCount: 0,
-      matchesCompleted: false,
-      todayPlayMinutes: 0,
-      killCount: 0,
-      headShotCount: 0,
-      totalHeadshots: 0,
-      todayDate: new Date(),
-    });
+    if (existingUser) {
+      return res.status(200).json({
+        message: "Wallet Address Found",
+        walletAddress: existingUser.walletAddress,
+      });
+    } else {
+      if (!walletAddress) {
+        return res.status(400).json({
+          status: "failed",
+          message: "Please provide wallet address",
+        });
+      }
+      const checkWalletAddress = await GameStats.findOne({ walletAddress });
+      if (checkWalletAddress) {
+        return res.status(200).json({
+          message: "This wallet Address is used by another user",
+          walletAddress: checkWalletAddress.walletAddress,
+        });
+      }
+      const newGameStats = new GameStats({
+        userId: userId,
+        walletAddress: walletAddress,
+        coinRewarded: false,
+        numCoins: 0,
+        matchCount: 0,
+        matchesCompleted: false,
+        todayPlayMinutes: 0,
+        killCount: 0,
+        headShotCount: 0,
+        totalHeadshots: 0,
+        todayDate: new Date(),
+      });
+      // Save the new game stats document to the database
+      // await newPlayersData.save();
 
-    // Save the new game stats document to the database
-    await newGameStats.save();
+      // Reward the player with 150 coins and set the coinRewarded flag to true on the server
+      newGameStats.numCoins += 150;
+      newGameStats.coinRewarded = true;
 
-    // Reward the player with 150 coins and set the coinRewarded flag to true on the server
-    newGameStats.numCoins += 150;
-    newGameStats.coinRewarded = true;
-    await newGameStats.save();
+      // console.log("newPlayersData", newPlayersData);
 
-    // Return a success message and the updated game stats
-    return res.status(200).json({
-      message: "Wallet address saved successfully",
-      numCoins: newGameStats.numCoins,
-      coinRewarded: newGameStats.coinRewarded,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
+      await newGameStats.save();
+
+      return res.status(200).json({
+        message: "Wallet address saved successfully",
+        numCoins: newGameStats.numCoins,
+        coinRewarded: newGameStats.coinRewarded,
+        walletAddress: walletAddress,
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error", err: err });
   }
 });
 
@@ -152,7 +221,6 @@ app.post("/trackFiveMatches", async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 // Endpoint for tracking Sixty Minutes GamePlay
 app.post("/trackSixtyMinutes", async (req, res) => {
@@ -232,13 +300,12 @@ app.post("/trackHundredKills", async (req, res) => {
     gameStats.totalKills += killCount;
     // check if new days has started, if yes then reset the fields
     if (!sameDay(new Date(), gameStats.todayDate2)) {
-    console.log("same day",{killCount});
-    gameStats.todayDate2 = new Date();
-    gameStats.killCount = killCount;
-
+      console.log("same day", { killCount });
+      gameStats.todayDate2 = new Date();
+      gameStats.killCount = killCount;
     } else {
-    console.log("not sameday",{killCount});
-    gameStats.killCount += killCount;
+      console.log("not sameday", { killCount });
+      gameStats.killCount += killCount;
     }
     await gameStats.save();
     console.log(gameStats.killCount);
@@ -356,15 +423,30 @@ app.get("/", async (req, res) => {
   res.send(await GameStats.find({}));
 });
 app.get("/date", async (req, res) => {
-  res.send(await GameStats.updateMany({
-    "todayDate": "2023-04-20T16:34:35.582Z",
-    "todayDate2": "2023-04-20T16:34:35.582Z",
-    "todayDate3": "2023-04-20T16:34:35.582Z",
-    "lastHeadshotsRewardTime": "2023-04-20T16:32:19.034Z",
-    "lastKillsRewardTime": "2023-04-20T16:34:36.150Z",
-    "last60MinuteReward": "2023-04-20T16:33:40.887Z",
-  }));
+  res.send(
+    await GameStats.updateMany({
+      todayDate: "2023-04-20T16:34:35.582Z",
+      todayDate2: "2023-04-20T16:34:35.582Z",
+      todayDate3: "2023-04-20T16:34:35.582Z",
+      lastHeadshotsRewardTime: "2023-04-20T16:32:19.034Z",
+      lastKillsRewardTime: "2023-04-20T16:34:36.150Z",
+      last60MinuteReward: "2023-04-20T16:33:40.887Z",
+    })
+  );
 });
+
+// app.get("/getWalletAddress", async (req, res) => {
+//   try {
+//     // const data = req.body;
+//     const data = await GameStats.findOne(req.body);
+//     console.log(data);
+//   } catch (err) {
+//     console.log(err);
+//     res.status(500).json({
+//       message: "Internal Server Error",
+//     });
+//   }
+// });
 app.delete("/", async (req, res) => {
   res.send(await GameStats.deleteMany({}));
 });
