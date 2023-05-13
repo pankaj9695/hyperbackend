@@ -499,7 +499,12 @@ app.post("/today-reward", async (req, res) => {
         $facet: {
           hundredKill: [
             {
-              $addFields: { taskId: 1, coins: 10, task_name: "hundredKill" },
+              $addFields: {
+                taskId: 1,
+                coins: 10,
+                task_name: "hundredKill",
+                status: "$totalKillClaimStatus",
+              },
             },
             {
               $project: {
@@ -508,7 +513,7 @@ app.post("/today-reward", async (req, res) => {
                 _id: 1,
                 userId: 1,
                 walletAddress: 1,
-                totalKillClaimStatus: 1,
+                status: 1,
                 coins: 1,
               },
             },
@@ -519,6 +524,7 @@ app.post("/today-reward", async (req, res) => {
                 taskId: 2,
                 coins: 5,
                 task_name: "twentyFiveHeadShots",
+                status: "$headshotClaimStatus",
               },
             },
             {
@@ -528,14 +534,19 @@ app.post("/today-reward", async (req, res) => {
                 task_name: 1,
                 userId: 1,
                 walletAddress: 1,
-                headshotClaimStatus: 1,
+                status: 1,
                 coins: 1,
               },
             },
           ],
           totalSpendTime: [
             {
-              $addFields: { taskId: 3, coins: 6, task_name: "totalSpendTime" },
+              $addFields: {
+                taskId: 3,
+                coins: 6,
+                task_name: "totalSpendTime",
+                status: "$totalTimeClaimStatus",
+              },
             },
             {
               $project: {
@@ -543,9 +554,8 @@ app.post("/today-reward", async (req, res) => {
                 _id: 1,
                 userId: 1,
                 walletAddress: 1,
-                totalTimeClaimStatus: 1,
                 coins: 1,
-
+                status: 1,
                 task_name: 1,
               },
             },
