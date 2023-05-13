@@ -1,6 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const moment = require("moment");
+
 // Set up the MongoDB connection string
 mongoose
   .connect(
@@ -51,6 +53,22 @@ const gameStatsSchema = new mongoose.Schema({
   todayDate: { type: Date, default: new Date() },
   todayDate2: { type: Date, default: new Date() },
   todayDate3: { type: Date, default: new Date() },
+  headshotClaimStatus: {
+    type: Boolean,
+    default: false,
+  },
+  totalKillClaimStatus: {
+    type: Boolean,
+    default: false,
+  },
+  totalTimeClaimStatus: {
+    type: Boolean,
+    default: false,
+  },
+  rewardDate: {
+    type: Date,
+    default: new Date(),
+  },
 });
 
 // Create a model for the GameStats collection
@@ -450,6 +468,152 @@ app.get("/date", async (req, res) => {
 app.delete("/", async (req, res) => {
   res.send(await GameStats.deleteMany({}));
 });
+
+app.post("/today-reward", async (req, res) => {
+  try {
+    if (!req.body.userId) {
+      return res.status(404).json({ message: "please provide UserID" });
+    }
+    let data = await GameStats.findOne({ userId: req.body.userId });
+    let existingRewardDate = moment(data.rewardDate);
+    let dif = moment().diff(existingRewardDate, "hours");
+    console.log(dif);
+    if (dif >= 24) {
+      await GameStats.updateOne(
+        { userId: req.body.userId },
+        {
+          $set: {
+            totalKillClaimStatus: false,
+            headshotClaimStatus: false,
+            totalTimeClaimStatus: false,
+            rewardDate: new Date(),
+          },
+        }
+      );
+    }
+    let rewardData = await GameStats.aggregate([
+      {
+        $match: { userId: req.body.userId },
+      },
+      {
+        $facet: {
+          hundredKill: [
+            {
+              $addFields: { taskId: 1, coins: 10, task_name: "hundredKill" },
+            },
+            {
+              $project: {
+                taskId: 1,
+                task_name: 1,
+                _id: 1,
+                userId: 1,
+                walletAddress: 1,
+                totalKillClaimStatus: 1,
+                coins: 1,
+              },
+            },
+          ],
+          twentyFiveHeadShots: [
+            {
+              $addFields: {
+                taskId: 2,
+                coins: 5,
+                task_name: "twentyFiveHeadShots",
+              },
+            },
+            {
+              $project: {
+                taskId: 1,
+                _id: 1,
+                task_name: 1,
+                userId: 1,
+                walletAddress: 1,
+                headshotClaimStatus: 1,
+                coins: 1,
+              },
+            },
+          ],
+          totalSpendTime: [
+            {
+              $addFields: { taskId: 3, coins: 6, task_name: "totalSpendTime" },
+            },
+            {
+              $project: {
+                taskId: 1,
+                _id: 1,
+                userId: 1,
+                walletAddress: 1,
+                totalTimeClaimStatus: 1,
+                coins: 1,
+
+                task_name: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          data: {
+            $concatArrays: [
+              "$hundredKill",
+              "$twentyFiveHeadShots",
+              "$totalSpendTime",
+            ],
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      data: rewardData[0].data,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Internal Server Error",
+      err: err,
+    });
+  }
+});
+
+app.post("/update-reward-status", async (req, res) => {
+  try {
+    let { userId, taskId } = req.body;
+    console.log(req.body);
+    if (!userId || !taskId) {
+      return res.status(400).json({
+        status: "failed",
+        message: "Please provide User Id and Task Id",
+      });
+    }
+
+    if (taskId === 1) {
+      await GameStats.updateOne(
+        { userId: userId },
+        { $set: { headshotClaimStatus: true } }
+      );
+    } else if (taskId === 2) {
+      await GameStats.updateOne(
+        { userId: userId },
+        { $set: { totalKillClaimStatus: 1 } }
+      );
+    } else {
+      await GameStats.updateOne(
+        { userId: userId },
+        { $set: { totalTimeClainStatus: 1 } }
+      );
+    }
+    res.status(200).json({
+      status: "success",
+      message: "Reward Status Change Successfully.",
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+});
+// app.post("/")
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
