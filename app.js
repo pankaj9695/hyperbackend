@@ -598,19 +598,19 @@ app.post("/update-reward-status", async (req, res) => {
     }
 
     if (taskId === 1) {
-      await GameStats.updateOne(
+      await PlayersData.updateOne(
         { userId: userId },
-        { $set: { headshotClaimStatus: true } }
+        { $set: { totalKillClaimStatus: true } }
       );
     } else if (taskId === 2) {
-      await GameStats.updateOne(
+      await PlayersData.updateOne(
         { userId: userId },
-        { $set: { totalKillClaimStatus: 1 } }
+        { $set: { headshotClaimStatus: 1 } } // headshotClaimStatus
       );
     } else {
-      await GameStats.updateOne(
+      await PlayersData.updateOne(
         { userId: userId },
-        { $set: { totalTimeClainStatus: 1 } }
+        { $set: { totalTimeClaimStatus: 1 } }
       );
     }
     res.status(200).json({
