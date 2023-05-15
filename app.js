@@ -598,17 +598,17 @@ app.post("/update-reward-status", async (req, res) => {
     }
 
     if (taskId === 1) {
-      await PlayersData.updateOne(
+      await GameStats.updateOne(
         { userId: userId },
         { $set: { totalKillClaimStatus: true } }
       );
     } else if (taskId === 2) {
-      await PlayersData.updateOne(
+      await GameStats.updateOne(
         { userId: userId },
         { $set: { headshotClaimStatus: 1 } } // headshotClaimStatus
       );
     } else {
-      await PlayersData.updateOne(
+      await GameStats.updateOne(
         { userId: userId },
         { $set: { totalTimeClaimStatus: 1 } }
       );
@@ -618,6 +618,7 @@ app.post("/update-reward-status", async (req, res) => {
       message: "Reward Status Change Successfully.",
     });
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .json({ status: "failed", message: "Internal Server Error" });
