@@ -503,7 +503,7 @@ app.post("/today-reward", async (req, res) => {
               $addFields: {
                 taskId: 1,
                 coins: 10,
-                task_name: "hundredKill",
+                task_name: "100 Kills",
                 status: "$totalKillClaimStatus",
               },
             },
@@ -524,7 +524,7 @@ app.post("/today-reward", async (req, res) => {
               $addFields: {
                 taskId: 2,
                 coins: 5,
-                task_name: "twentyFiveHeadShots",
+                task_name: "25 Head Shots",
                 status: "$headshotClaimStatus",
               },
             },
@@ -545,7 +545,7 @@ app.post("/today-reward", async (req, res) => {
               $addFields: {
                 taskId: 3,
                 coins: 6,
-                task_name: "totalSpendTime",
+                task_name: "Play For 1 Hour",
                 status: "$totalTimeClaimStatus",
               },
             },
