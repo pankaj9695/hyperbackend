@@ -193,6 +193,7 @@ app.post("/saveWalletAddress", async (req, res) => {
         numCoins: newGameStats.numCoins,
         coinRewarded: newGameStats.coinRewarded,
         walletAddress: walletAddress,
+        userId: userId,
       });
     }
   } catch (err) {
