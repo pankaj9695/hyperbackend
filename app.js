@@ -54,16 +54,19 @@ const gameStatsSchema = new mongoose.Schema({
   todayDate2: { type: Date, default: new Date() },
   todayDate3: { type: Date, default: new Date() },
   headshotClaimStatus: {
-    type: Boolean,
-    default: false,
+    type: String,
+    enum: ["true", "false", "complete"],
+    default: "false",
   },
   totalKillClaimStatus: {
-    type: Boolean,
-    default: false,
+    type: String,
+    enum: ["true", "false", "complete"],
+    default: "false",
   },
   totalTimeClaimStatus: {
-    type: Boolean,
-    default: false,
+    type: String,
+    enum: ["true", "false", "complete"],
+    default: "false",
   },
   rewardDate: {
     type: Date,
@@ -484,9 +487,12 @@ app.post("/today-reward", async (req, res) => {
         { userId: req.body.userId },
         {
           $set: {
-            totalKillClaimStatus: false,
-            headshotClaimStatus: false,
-            totalTimeClaimStatus: false,
+            totalKillClaimStatus: "false",
+            headshotClaimStatus: "false",
+            totalTimeClaimStatus: "false",
+            killCount: 0,
+            todayPlayMinutes: 0,
+            headShotCount: 0,
             rewardDate: new Date(),
           },
         }
@@ -589,7 +595,7 @@ app.post("/today-reward", async (req, res) => {
 
 app.post("/update-reward-status", async (req, res) => {
   try {
-    let { userId, taskId } = req.body;
+    let { userId, taskId, status } = req.body;
     console.log(req.body);
     if (!userId || !taskId) {
       return res.status(400).json({
@@ -598,20 +604,30 @@ app.post("/update-reward-status", async (req, res) => {
       });
     }
 
+    let data = await GameStats.findOne({ userId: userId });
+    console.log(data);
+
+    let taskStatus = "false";
     if (taskId === 1) {
+      taskStatus = data.killCount >= 100 ? "complete" : "true";
       await GameStats.updateOne(
         { userId: userId },
-        { $set: { totalKillClaimStatus: true } }
+        { $set: { totalKillClaimStatus: taskStatus } }
       );
     } else if (taskId === 2) {
+      taskStatus = data.headShotCount >= 25 ? "complete" : "true";
       await GameStats.updateOne(
         { userId: userId },
-        { $set: { headshotClaimStatus: 1 } } // headshotClaimStatus
+        { $set: { headshotClaimStatus: taskStatus } } // headshotClaimStatus
       );
     } else {
+      // let existingRewardDate = moment(data.rewardDate);
+      // let dif = moment().diff(existingRewardDate, "hours");
+
+      taskStatus = data.sixtyMinitComplete == true ? "complete" : "true";
       await GameStats.updateOne(
         { userId: userId },
-        { $set: { totalTimeClaimStatus: 1 } }
+        { $set: { totalTimeClaimStatus: taskStatus } }
       );
     }
     res.status(200).json({
