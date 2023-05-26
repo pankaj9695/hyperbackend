@@ -605,8 +605,6 @@ app.post("/update-reward-status", async (req, res) => {
     }
 
     let data = await GameStats.findOne({ userId: userId });
-    console.log(data);
-
     let taskStatus = "false";
     if (taskId === 1) {
       taskStatus = data.killCount >= 100 ? "complete" : "true";
